@@ -66,4 +66,10 @@ router.post(
     addNote
 );
 
+router.put(
+  "/:id/status",
+  authMiddleware,
+  updateStatus
+);
+
 module.exports=router;
