@@ -14,7 +14,9 @@ const {
     getLeadById,
     updateLead,
     deleteLead,
-    assignLead
+    assignLead,
+    addNote,
+    updateStatus
 } = require("../controllers/leadController");
 
 router.post(
@@ -56,6 +58,12 @@ router.put(
     authMiddleware, 
     adminMiddleware, 
     assignLead
+);
+
+router.post(
+    "/:id/notes", 
+    authMiddleware, 
+    addNote
 );
 
 module.exports=router;

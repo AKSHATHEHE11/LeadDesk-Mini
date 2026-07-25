@@ -28,20 +28,27 @@ const leadSchema = new mongoose.Schema({
 
     status: {
         type: String,
-        enum: ["New", "Contacted", "Qualified", "Lost"],
+        enum: [
+                "New",
+                "Contacted",
+                "Qualified",
+                "Proposal Sent",
+                "Closed Won",
+                "Closed Lost"
+            ],
         default: "New"
     },
     
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true
+        default: null
     },
 
     assignedTo: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true
+        default: null
     },
 
     notes: [

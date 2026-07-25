@@ -6,10 +6,9 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import StatsCard from "../components/StatsCard";
 import LeadTable from "../components/LeadTable";
-
-
+import LeadDetailsModal from "../components/LeadDetailsModal";
 import AddLeadModal from "../components/AddLeadModal";
-
+import AssignLeadModal from "../components/AssignLeadModal";
 
 function Dashboard() {
 
@@ -20,13 +19,21 @@ function Dashboard() {
     const [totalLeads, setTotalLeads] = useState(0);
     const [showModal, setShowModal] = useState(false);
     const [selectedLead, setSelectedLead] = useState(null);
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [status, setStatus] = useState("");
+    const [assignedTo, setAssignedTo] = useState("");
+    const [users, setUsers] = useState([]);
+
+    const user = JSON.parse(localStorage.getItem("user"));
+    const role = user?.role;
 
     const fetchLeads = async () => {
         try {
 
             const res = await api.get(
-                                        `/leads?page=${page}&limit=5&search=${search}`
-                                     );
+                                            `/leads?page=${page}&search=${search}&status=${status}&assignedTo=${assignedTo}`
+                                        );
 
             setLeads(res.data.data);
             setTotalPages(res.data.totalPages);
@@ -39,11 +46,27 @@ function Dashboard() {
         }
     };
 
+    const fetchUsers = async () => {
+        try {
+
+            const res = await api.get("/users");
+
+            setUsers(res.data.data);
+
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
     useEffect(() => {
         fetchLeads();
-    }, [page,search]);
+    }, [page, search, status, assignedTo]);
 
-    const total = leads.length;
+    useEffect(() => {
+        if (role === "admin") {
+            fetchUsers();
+        }
+    }, []);
 
     const newLeads = leads.filter(
         lead => lead.status === "New"
@@ -75,16 +98,26 @@ function Dashboard() {
         setShowModal(true);
     };
 
-    console.log(leads);
+    const handleAssign = (lead) => {
+        setSelectedLead(lead);
+        setShowAssignModal(true);
+    };
+
+    const viewLead = (lead) => {
+        setSelectedLead(lead);
+        setShowDetailsModal(true);
+    };
+
+
 
   return (
-    <div className="flex bg-slate-100 min-h-screen">
+    <div className="flex bg-slate-50 min-h-screen">
       <Sidebar />
 
       <main className="flex-1">
         <Navbar />
 
-        <div className="p-8">
+        <div className="p-8 space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatsCard
             title="Total Leads"
@@ -94,18 +127,18 @@ function Dashboard() {
 
             <StatsCard
             title="New Leads"
-            value={totalLeads}
+            value={newLeads}
             color="text-green-600"
             />
 
             <StatsCard
             title="Qualified"
-            value={totalLeads}
+            value={qualified}
             color="text-purple-600"
             />
             </div>
 
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-wrap items-center gap-4 mb-6">
 
                 <input
                     type="text"
@@ -118,6 +151,45 @@ function Dashboard() {
                     className="border rounded-lg px-4 py-2 w-80"
                 />
 
+                <select
+                    value={status}
+                    onChange={(e) => {
+                        setStatus(e.target.value);
+                        setPage(1);
+                    }}
+                    className="border rounded-lg px-4 py-2"
+                >
+                    <option value="">All Status</option>
+                    <option value="New">New</option>
+                    <option value="Contacted">Contacted</option>
+                    <option value="Qualified">Qualified</option>
+                    <option value="Proposal Sent">Proposal Sent</option>
+                    <option value="Closed Won">Closed Won</option>
+                    <option value="Closed Lost">Closed Lost</option>
+                </select>
+
+                {role === "admin" && (
+                    <select
+                        value={assignedTo}
+                        onChange={(e) => {
+                            setAssignedTo(e.target.value);
+                            setPage(1);
+                        }}
+                        className="border rounded-lg px-4 py-2"
+                    >
+                        <option value="">All Members</option>
+
+                        {users.map((member) => (
+                            <option
+                                key={member._id}
+                                value={member._id}
+                            >
+                                {member.name}
+                            </option>
+                        ))}
+                    </select>
+                )}
+
             </div>
 
             <div className="mt-8">
@@ -129,6 +201,9 @@ function Dashboard() {
                         setShowModal(true);
                     }}
                     onEdit={editLead}
+                    onAssign={handleAssign}
+                    onView={viewLead}
+                    role={role}
                 />
             </div>
 
@@ -168,6 +243,31 @@ function Dashboard() {
                 onSuccess={() => {
                     fetchLeads();
                     setShowModal(false);
+                    setSelectedLead(null);
+                }}
+            />
+        )}
+
+        {showAssignModal && (
+            <AssignLeadModal
+                lead={selectedLead}
+                onClose={() => {
+                    setShowAssignModal(false);
+                    setSelectedLead(null);
+                }}
+                onSuccess={() => {
+                    fetchLeads();
+                    setShowAssignModal(false);
+                    setSelectedLead(null);
+                }}
+            />
+        )}
+
+        {showDetailsModal && (
+            <LeadDetailsModal
+                lead={selectedLead}
+                onClose={() => {
+                    setShowDetailsModal(false);
                     setSelectedLead(null);
                 }}
             />

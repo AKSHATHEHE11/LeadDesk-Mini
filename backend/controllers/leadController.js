@@ -1,8 +1,18 @@
 const Lead = require("../models/Lead");
+const User = require("../models/User");
 
-const createLead = async(req, res)=>{
-    try{
-        const{name,email,company,phone,status}=req.body;
+const createLead = async (req, res) => {
+    try {
+
+        if (req.user.role !== "admin") {
+            return res.status(403).json({
+                success: false,
+                message: "Only admins can create leads"
+            });
+        }
+
+        const { name, email, company, phone, status } = req.body;
+
         const lead = await Lead.create({
             name,
             email,
@@ -11,28 +21,28 @@ const createLead = async(req, res)=>{
             status,
 
             createdBy: req.user._id,
-            assignedTo: req.user._id,
+            assignedTo: null,
 
             activity: [
                 {
-                    action: "Lead Created",
+                    action: "Lead created",
                     performedBy: req.user._id
                 }
             ]
         });
 
         res.status(201).json({
-            success:true,
-            message:"Lead created successfully",
-            data:lead
+            success: true,
+            message: "Lead created successfully",
+            data: lead
         });
 
-    }catch(error){
+    } catch (error) {
 
         res.status(500).json({
-            success:false,
+            success: false,
             message: error.message
-        })
+        });
 
     }
 };
@@ -40,19 +50,26 @@ const createLead = async(req, res)=>{
 const getAllLeads = async (req, res) => {
     try {
 
-        console.log(req.user);
         const search = req.query.search;
+        const status = req.query.status;
+        const assignedTo = req.query.assignedTo;
 
         let query = {};
 
         if (search) {
-            query = {
-                $or: [
-                    { name: { $regex: search, $options: "i" } },
-                    { email: { $regex: search, $options: "i" } },
-                    { company: { $regex: search, $options: "i" } }
-                ]
-            };
+            query.$or = [
+                { name: { $regex: search, $options: "i" } },
+                { email: { $regex: search, $options: "i" } },
+                { company: { $regex: search, $options: "i" } }
+            ];
+        }
+
+        if (status) {
+            query.status = status;
+        }
+
+        if (assignedTo) {
+            query.assignedTo = assignedTo;
         }
 
         const page = Number(req.query.page) || 1;
@@ -64,26 +81,26 @@ const getAllLeads = async (req, res) => {
 
         if (req.user.role === "admin") {
             leads = await Lead.find(query)
-                              .skip(skip)
-                              .limit(limit);
+                .populate("assignedTo", "name email")
+                .skip(skip)
+                .limit(limit);
         } else {
             leads = await Lead.find({
-                                assignedTo: req.user._id,
-                                ...query
-                            })
-                            .skip(skip)
-                            .limit(limit);
+                    assignedTo: req.user._id,
+                    ...query
+                })
+                .populate("assignedTo", "name email")
+                .skip(skip)
+                .limit(limit);
         }
 
         const totalLeads =
             req.user.role === "admin"
                 ? await Lead.countDocuments(query)
                 : await Lead.countDocuments({
-                    assignedTo: req.user._id,
-                    ...query
-        });
-
-        console.log(leads);
+                      assignedTo: req.user._id,
+                      ...query
+                  });
 
         res.status(200).json({
             success: true,
@@ -137,55 +154,43 @@ const getLeadById = async(req,res)=>{
     }
 };
 
-const updateLead =async(req,res)=>{
-    try{
-        let lead;
+const updateLead = async (req, res) => {
+    try {
 
-        if (req.user.role === "admin") {
-            lead = await Lead.findByIdAndUpdate(
-                req.params.id,
-                req.body,
-                {
-                    new: true,
-                    runValidators: true
-                }
-            );
-        } else {
-            lead = await Lead.findOneAndUpdate(
-                {
-                    _id: req.params.id,
-                    assignedTo: req.user._id
-                },
-                req.body,
-                {
-                    new: true,
-                    runValidators: true
-                }
-            );
+        if (req.user.role !== "admin") {
+            return res.status(403).json({
+                success: false,
+                message: "Only admins can update leads"
+            });
         }
 
-        if(!lead){
-            
+        const lead = await Lead.findById(req.params.id);
+
+        if (!lead) {
             return res.status(404).json({
-                success:false,
+                success: false,
                 message: "Lead not found"
             });
         }
 
-        lead.activity.push({
-            action: "Lead Updated",
-            performedBy: req.user._id
-        });
+        const { name, email, company, phone } = req.body;
+
+        if (name !== undefined) lead.name = name;
+        if (email !== undefined) lead.email = email;
+        if (company !== undefined) lead.company = company;
+        if (phone !== undefined) lead.phone = phone;
 
         await lead.save();
 
         res.status(200).json({
-            success:true,
-            message:"Lead Updated successfylly",
+            success: true,
+            message: "Lead updated successfully",
+            data: lead
         });
-    }catch(error){
+
+    } catch (error) {
         res.status(500).json({
-            success:false,
+            success: false,
             message: error.message
         });
     }
@@ -193,16 +198,15 @@ const updateLead =async(req,res)=>{
 
 const deleteLead = async(req,res)=>{
     try{
-        let lead;
 
-        if (req.user.role === "admin") {
-            lead = await Lead.findByIdAndDelete(req.params.id);
-        } else {
-            lead = await Lead.findOneAndDelete({
-                _id: req.params.id,
-                assignedTo: req.user._id
+        if (req.user.role !== "admin") {
+            return res.status(403).json({
+                success: false,
+                message: "Only admins can delete leads"
             });
         }
+
+        const lead = await Lead.findByIdAndDelete(req.params.id);
 
         if(!lead){
             return res.status(404).json({
@@ -226,6 +230,13 @@ const deleteLead = async(req,res)=>{
 const assignLead = async (req, res) => {
     try {
 
+        if (req.user.role !== "admin") {
+            return res.status(403).json({
+                success: false,
+                message: "Only admins can assign leads"
+            });
+        }
+
         const { assignedTo } = req.body;
 
         const lead = await Lead.findById(req.params.id);
@@ -237,10 +248,27 @@ const assignLead = async (req, res) => {
             });
         }
 
-        lead.assignedTo = assignedTo;
+        let member = null;
 
+        if (assignedTo) {
+            member = await User.findById(assignedTo);
+
+            if (!member) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Assigned user not found"
+                });
+            }
+        }
+
+        // Assign or unassign
+        lead.assignedTo = assignedTo || null;
+
+        // Record activity
         lead.activity.push({
-            action: "Lead Assigned",
+            action: assignedTo
+                ? `Lead assigned to ${member.name}`
+                : "Lead unassigned",
             performedBy: req.user._id
         });
 
@@ -248,7 +276,113 @@ const assignLead = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "Lead assigned successfully",
+            message: assignedTo
+                ? "Lead assigned successfully"
+                : "Lead unassigned successfully",
+            data: lead
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+};
+
+const addNote = async (req, res) => {
+    try {
+
+        const { text } = req.body;
+
+        if (!text || text.trim() === "") {
+            return res.status(400).json({
+                success: false,
+                message: "Note text is required"
+            });
+        }
+
+        const lead = await Lead.findById(req.params.id);
+
+        if (!lead) {
+            return res.status(404).json({
+                success: false,
+                message: "Lead not found"
+            });
+        }
+
+        lead.notes.push({
+            text,
+            createdBy: req.user._id
+        });
+
+        lead.activity.push({
+            action: "Note added",
+            performedBy: req.user._id
+        });
+
+        await lead.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Note added successfully",
+            data: lead
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+};
+
+const updateStatus = async (req, res) => {
+    try {
+        const { status } = req.body;
+
+        let lead;
+
+        // Admin can update any lead
+        if (req.user.role === "admin") {
+            lead = await Lead.findById(req.params.id);
+        } 
+        // Member can update only their assigned leads
+        else {
+            lead = await Lead.findOne({
+                _id: req.params.id,
+                assignedTo: req.user._id
+            });
+        }
+
+        if (!lead) {
+            return res.status(404).json({
+                success: false,
+                message: "Lead not found"
+            });
+        }
+
+        // Only update if status has actually changed
+        if (lead.status !== status) {
+            const previousStatus = lead.status;
+
+            lead.status = status;
+
+            lead.activity.push({
+                action: `Status changed from ${previousStatus} to ${status}`,
+                performedBy: req.user._id
+            });
+
+            await lead.save();
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Status updated successfully",
             data: lead
         });
 
@@ -266,5 +400,7 @@ module.exports={
     getLeadById,
     updateLead,
     deleteLead,
-    assignLead
+    assignLead,
+    addNote,
+    updateStatus
 };

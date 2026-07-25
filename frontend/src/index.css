@@ -2,7 +2,15 @@
 
 body {
   margin: 0;
-  background-color: #f8fafc;
-  color: #0f172a;
   font-family: Inter, system-ui, sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
 }
