@@ -173,12 +173,23 @@ const updateLead = async (req, res) => {
             });
         }
 
-        const { name, email, company, phone } = req.body;
+        const { name, email, company, phone, status } = req.body;
 
         if (name !== undefined) lead.name = name;
         if (email !== undefined) lead.email = email;
         if (company !== undefined) lead.company = company;
         if (phone !== undefined) lead.phone = phone;
+
+        if (status !== undefined && lead.status !== status) {
+            const previousStatus = lead.status;
+
+            lead.status = status;
+
+            lead.activity.push({
+                action: `Status changed from ${previousStatus} to ${status}`,
+                performedBy: req.user._id
+            });
+        }
 
         await lead.save();
 

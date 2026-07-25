@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 
-function LeadDetailsModal({ lead, onClose }) {
+function LeadDetailsModal({ lead, onClose, onSuccess}) {
   const [leadData, setLeadData] = useState(null);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState("");
@@ -34,22 +34,22 @@ function LeadDetailsModal({ lead, onClose }) {
     }
   };
 
-  const updateStatus = async () => {
-      try {
+const updateStatus = async () => {
+  try {
+    await api.put(`/leads/${lead._id}/status`, {
+      status,
+    });
 
-          await api.patch(`/leads/${lead._id}/status`, {
-              status
-          });
+    fetchLead();
 
-          fetchLead();
-
-      } catch (err) {
-
-          alert("Failed to update status");
-
-      }
-  };
-
+    if (onSuccess) {
+      onSuccess();
+    }
+  } catch (err) {
+    console.log(err.response?.data || err);
+    alert("Failed to update status");
+  }
+};
   useEffect(() => {
     fetchLead();
   }, []);
@@ -65,6 +65,7 @@ function LeadDetailsModal({ lead, onClose }) {
   }
 
   return (
+    
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center">
 
       <div className="bg-white w-[700px] max-h-[90vh] overflow-y-auto rounded-xl p-6">
@@ -108,10 +109,10 @@ function LeadDetailsModal({ lead, onClose }) {
               </select>
 
               <button
-                  onClick={updateStatus}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+                onClick={updateStatus}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg"
               >
-                  Save
+                Save
               </button>
 
           </div>
