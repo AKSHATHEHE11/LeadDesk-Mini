@@ -41,9 +41,9 @@ function AddLeadModal({ onClose, onSuccess, lead = null }) {
         await api.put(`/leads/${lead._id}`, formData);
 
         if (formData.assignedTo) {
-          await api.patch(`/leads/${lead._id}/assign`, {
+            await api.put(`/leads/${lead._id}/assign`, {
             assignedTo: formData.assignedTo,
-          });
+        });
         }
       } else {
         await api.post("/leads", formData);

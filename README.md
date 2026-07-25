@@ -8,9 +8,9 @@ A full-stack Lead Management CRM built for small sales teams. The application en
 
 ## Live Demo
 
-Frontend: Coming Soon
+Frontend: https://lead-desk-mini-gilt-alpha.vercel.app/
 
-Backend API: Coming Soon
+Backend API: https://leaddesk-mini-z51d.onrender.com/
 
 ---
 
@@ -18,15 +18,15 @@ Backend API: Coming Soon
 
 ### Admin
 
-Email: admin@example.com
+Email: admin@gmail.com
 
-Password: ********
+Password: Admin123
 
 ### Member
 
-Email: member@example.com
+Email: member@gmail.com
 
-Password: ********
+Password: Member@123
 
 ---
 
@@ -74,6 +74,64 @@ Password: ********
 - Automatically creates new leads
 
 ---
+## Architecture
+
+LeadDesk Mini follows a client-server architecture.
+
+Frontend
+- React
+- React Router
+- Axios
+- Tailwind CSS
+
+Backend
+- Express REST API
+- JWT Authentication
+- Role-Based Authorization
+- Express Validator
+
+Database
+- MongoDB
+- Mongoose ODM
+
+Testing
+- Jest
+- Supertest
+
+Deployment
+- Frontend: Vercel
+- Backend: Render
+- Database: MongoDB Atlas
+---
+## Role Permissions
+
+### Admin
+
+- Create leads
+- Edit leads
+- Delete leads
+- Assign leads
+- View all leads
+- Update lead status
+- View activity history
+- Manage members
+
+### Member
+
+- View assigned leads only
+- Update status of assigned leads
+- Add notes
+- View activity history of assigned leads
+---
+
+## Security
+
+- JWT Authentication
+- Password hashing using bcrypt
+- Protected API routes
+- Role-based authorization
+- Express Validator request validation
+---
 
 ## Tech Stack
 
@@ -114,6 +172,7 @@ LeadDesk-Mini/
 ├── frontend/
 ├── backend/
 └── README.md
+└── TASKB.md
 ```
 
 ---
@@ -172,10 +231,10 @@ JWT_SECRET=your_secret_key
 | GET | /api/leads |
 | POST | /api/leads |
 | GET | /api/leads/:id |
-| PATCH | /api/leads/:id |
+| PUT | /api/leads/:id |
 | DELETE | /api/leads/:id |
-| PATCH | /api/leads/:id/assign |
-| PATCH | /api/leads/:id/status |
+| PUT    | /api/leads/:id/assign |
+| PUT | /api/leads/:id/status |
 | POST | /api/leads/:id/notes |
 
 ### Users
@@ -191,35 +250,46 @@ JWT_SECRET=your_secret_key
 | POST | /api/public/lead |
 
 ---
+## Data Model
 
-## Testing
+User
 
-Run all tests:
+- name
+- email
+- password
+- role
 
-```bash
-npm test
-```
+Lead
 
+- name
+- email
+- company
+- phone
+- status
+- assignedTo
+- createdBy
+- notes
+- activity
+- createdAt
+- updatedAt
 ---
 
-## Screenshots
+## Automated Tests
 
-### Login
+The project includes integration tests using Jest and Supertest.
 
-(Add screenshot)
+Covered Scenarios
 
-### Dashboard
+- User Registration
+- User Login
+- Invalid Login
+- Admin creates lead
+- Member permission validation
+- Admin assigns lead
 
-(Add screenshot)
+Run tests
 
-### Lead Details
-
-(Add screenshot)
-
-### Public Lead Form
-
-(Add screenshot)
-
+npm test
 ---
 
 ## Deployment
